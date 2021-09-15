@@ -18,6 +18,55 @@ const todoListState = atom<Todo[]>({
   default: [],
 });
 
+const FilterTypes = {
+  ShowAll : 'Show All',
+  ShowCompleted : 'Show Completed',
+  ShowUncompleted : 'Show Uncompleted',
+};
+
+type FilterType = typeof FilterTypes[keyof typeof FilterTypes];
+
+const todoListFilterState = atom<FilterType>({
+  key: 'todoListFilterState',
+  default: FilterTypes.ShowAll,
+});
+
+const filteredTodoListState = selector({
+  key: 'filteredTodoListState',
+  get: ({ get }) => {
+    const filter = get(todoListFilterState);
+    const list = get(todoListState);
+
+    switch (filter) {
+      case FilterTypes.ShowCompleted:
+        return list.filter((item) => item.isComplete);
+      case FilterTypes.ShowUncompleted:
+        return list.filter((item) => !item.isComplete);
+      default:
+        return list;
+    }
+  },
+});
+
+const TodoListFilters: FC<{}> = () => {
+  const [filter, setFilter] = useRecoilState(todoListFilterState);
+
+  const updateFilter = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setFilter(event.target.value);
+  }
+  
+  return (
+    <>
+      Filter:
+      <select value={filter} onChange={updateFilter}>
+        <option value={FilterTypes.ShowAll}>All</option>
+        <option value={FilterTypes.ShowCompleted}>Completed</option>
+        <option value={FilterTypes.ShowUncompleted}>Uncompleted</option>
+      </select>
+    </>
+  );
+}
+
 let id = 0;
 const getId = () => id++;
 
@@ -105,12 +154,12 @@ const TodoItem: FC<TodoItemProps> = ({ item }) => {
 }
 
 const TodoList: FC<{}> = () => {
-  const todoList = useRecoilValue(todoListState);
+  const todoList = useRecoilValue(filteredTodoListState);
 
   return (
     <>
       {/* <TodoListStats /> */}
-      {/* <TodoListFilters /> */}
+      <TodoListFilters />
       <TodoItemCreator />
       {todoList.map((todoItem) => (
         <TodoItem key={todoItem.id} item={todoItem} />
